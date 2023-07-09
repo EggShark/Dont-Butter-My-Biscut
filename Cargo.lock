@@ -7,6 +7,7 @@ name = "Dont-Butter-My-Biscut"
 version = "0.1.0"
 dependencies = [
  "bottomless-pit",
+ "rand",
 ]
 
 [[package]]
@@ -208,7 +209,6 @@ dependencies = [
 [[package]]
 name = "bottomless-pit"
 version = "0.1.1"
-source = "git+https://github.com/EggShark/bottomless-pit.git#52be7a5b2dfde7ada1e8f9a2ce0ed7116f87df6f"
 dependencies = [
  "bytemuck",
  "cgmath",

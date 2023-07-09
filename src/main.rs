@@ -18,7 +18,7 @@ use text::Text;
 fn main() {
     let mut engine = EngineBuilder::new()
         .set_clear_colour(Colour::Blue)
-        .set_window_title("Butter My Biscut!")
+        .set_window_title("Butter My Biscuit!")
         .unresizable()
         .with_resolution((800, 800))
         .build()
@@ -33,6 +33,7 @@ fn main() {
 struct Biscut {
     text: Vec<Text>,
     bg_texture: TextureIndex,
+    logo: TextureIndex,
     level: Level,
     state: MainState,
 }
@@ -58,6 +59,7 @@ impl bottomless_pit::Game for Biscut {
                 let r1_size = self.text[0].size + Vec2{x: 20.0, y: 20.0};
                 let r2_pos = self.text[1].pos - Vec2{x: 10.0, y: 10.0};
                 let r2_size = self.text[1].size + Vec2{x: 20.0, y: 20.0};
+                render_handle.draw_textured_rectangle(Vec2{x: 250.0, y: 250.0}, 300.0, 300.0, &self.logo);
                 render_handle.draw_rectangle(r1_pos, r1_size.x, r1_size.y, Colour::White);
                 render_handle.draw_rectangle(r2_pos, r2_size.x, r2_size.y, Colour::White);
             },
@@ -78,6 +80,7 @@ impl bottomless_pit::Game for Biscut {
 impl Biscut {
     fn new(engine_handle: &mut Engine) -> Self {
         let bg_texture = engine_handle.create_texture("assets/bg.png").unwrap();
+        let logo = engine_handle.create_texture("assets/logo.png").unwrap();
 
         let text = vec![
             Text::new("Start Game", 50.0, Vec2{x: 20.0, y: 600.0}, Colour::Black, engine_handle),
@@ -90,6 +93,7 @@ impl Biscut {
 
         Self {
             level: Level::new(engine_handle),
+            logo,
             text,
             bg_texture,
             state: MainState::MainMenu,

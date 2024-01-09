@@ -1,10 +1,12 @@
 use std::f32::consts::PI;
 use std::time::Instant;
 
+use bottomless_pit::colour::Colour;
 use bottomless_pit::engine_handle::Engine;
 use bottomless_pit::input::{Key, MouseKey};
-use bottomless_pit::render::Renderer;
-use bottomless_pit::texture::TextureIndex;
+use bottomless_pit::render::RenderInformation;
+use bottomless_pit::material::{Material, MaterialBuilder};
+use bottomless_pit::texture::Texture;
 use bottomless_pit::vectors::Vec2;
 
 use crate::enemy::Butter;
@@ -24,15 +26,17 @@ pub struct Player {
     animations: [Anmiation; 7],
     attack_animations: [Anmiation; 3],
     current_attack_animation: usize,
-    full_heart: TextureIndex,
-    empty_heart: TextureIndex,
+    full_heart: Material,
+    empty_heart: Material,
     rotation: f32,
 }
 
 impl Player {
     pub fn new(pos: Vec2<f32>, engine_handle: &mut Engine) -> Self {
-        let full_heart = engine_handle.create_texture("assets/heart.png").unwrap();
-        let empty_heart = engine_handle.create_texture("assets/heartEmpty.png").unwrap();
+        let full_heart_tex = Texture::new(engine_handle, "assets/heart.png");
+        let empty_heart_text = Texture::new(engine_handle, "assets/heartEmpty.png");
+        let full_heart = MaterialBuilder::new().add_texture(full_heart_tex).build(engine_handle);
+        let empty_heart = MaterialBuilder::new().add_texture(empty_heart_text).build(engine_handle);
 
         Self {
             pos,
@@ -72,25 +76,30 @@ impl Player {
         ]
     }
 
-    pub fn draw(&self, render_handle: &mut Renderer) {
+    pub fn draw<'p, 'o>(&'o mut self, render_handle: &mut RenderInformation<'p, 'o>) where 'o: 'p {
         let (index, flipped) = self.animation_state.index();
-        self.animations[index].draw(render_handle, self.pos, self.size, flipped);
+        self.animations[index].add_instance(render_handle, self.pos, self.size, flipped);
 
         if !self.is_dead() {
-            self.attack_animations[self.current_attack_animation].draw_with_rotation(render_handle, self.weapon_pos, self.weapon_size, false, self.rotation);
+            self.attack_animations[self.current_attack_animation].add_with_rotation(render_handle, self.weapon_pos, self.weapon_size, false, self.rotation);
         }
 
         let mut offset = 0;
         let step = 75;
         let max = self.max_hp as u32 * step;
         for _ in 0..self.hp {
-            render_handle.draw_textured_rectangle(Vec2{x: offset as f32, y: 0.0}, 50.0, 50.0, &self.full_heart);
+            self.full_heart.add_rectangle(Vec2{x: offset as f32, y: 0.0}, Vec2{x: 50.0, y: 50.0}, Colour::WHITE, &render_handle);
             offset += step;
         }
         for _ in (offset..max).step_by(step as usize) {
-            render_handle.draw_textured_rectangle(Vec2{x: offset as f32, y: 0.0}, 50.0, 50.0, &self.empty_heart);
+            self.empty_heart.add_rectangle(Vec2{x: offset as f32, y: 0.0}, Vec2{x: 50.0, y: 50.0}, Colour::WHITE, &render_handle);
             offset += step;
         }
+
+        self.animations[index].draw(render_handle);
+        self.attack_animations[self.current_attack_animation].draw(render_handle);
+        self.empty_heart.draw(render_handle);
+        self.full_heart.draw(render_handle);
     }
 
     pub fn update(&mut self, engine_handle: &mut Engine, dt: f32, butters: &mut Vec<Butter>) {

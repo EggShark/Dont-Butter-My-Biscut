@@ -1,7 +1,8 @@
 use bottomless_pit::colour::Colour;
 use bottomless_pit::engine_handle::Engine;
-use bottomless_pit::render::Renderer;
-use bottomless_pit::texture::TextureIndex;
+use bottomless_pit::material::{Material, MaterialBuilder};
+use bottomless_pit::render::RenderInformation;
+use bottomless_pit::texture::Texture;
 use bottomless_pit::vectors::Vec2;
 use rand::Rng;
 use rand::rngs::ThreadRng;
@@ -19,7 +20,7 @@ pub struct Level {
     wave_number: u32,
     enemies_spawned: u32,
     spawn_timer: f32,
-    butter_texture: TextureIndex,
+    butter_texture: Material,
     enemy_animations: [Anmiation; 4],
     random: ThreadRng,
     total_kills: u32,
@@ -29,10 +30,13 @@ impl Level {
     pub fn new(engine_handle: &mut Engine) -> Self {
         let player = Player::new(Vec2{x: 400.0, y: 400.0}, engine_handle);
 
-        let butter_texture = engine_handle.create_texture("assets/butter.png").unwrap();
+        let butter_tex = Texture::new(engine_handle, "assets/butter.png");
+        let butter_texture = MaterialBuilder::new().add_texture(butter_tex).build(engine_handle);
 
-        let wave_text_x = 800.0 - engine_handle.measure_text("Wave: 1", 40.0).x;
-        let wave_text = Text::new("Wave: 1", 40.0, Vec2{x: wave_text_x, y: 0.0}, Colour::Black, engine_handle);
+        let mut wave_text = Text::new("Wave: 1", 40.0, Vec2{x: 200.0, y: 0.0}, Colour::BLACK, engine_handle);
+        let size = wave_text.size;
+        let x = 800 - size.x;
+        wave_text.pos.x = x as f32;
 
         let enemy_animations = Enemy::create_animations(engine_handle);
 
@@ -88,11 +92,16 @@ impl Level {
         self.butters.retain(|b| b.valid && (b.pos.x > 0.0 && b.pos.x < 800.0) && (b.pos.y > 0.0 && b.pos.y < 800.0));
     }
 
-    pub fn draw(&self, render_handle: &mut Renderer) {
-        self.enemies.iter().for_each(|b| b.draw(render_handle, &self.enemy_animations));
+    pub fn draw<'p, 'o>(&'o mut self, render_handle: &mut RenderInformation<'p, 'o>) where 'o: 'p {
+        // self.enemies.iter().for_each(|b: &'o Enemy| b.draw(render_handle, &mut self.enemy_animations));
+        self.enemies.iter().for_each(|e| e.draw(render_handle, &mut self.enemy_animations));
+        self.butters.iter().for_each(|b| b.draw(render_handle, &mut self.butter_texture));
+        for s in self.enemy_animations.iter_mut() {
+            s.draw(render_handle);
+        }
+        self.butter_texture.draw(render_handle);
         self.player.draw(render_handle);
-        self.butters.iter().for_each(|b| b.draw(render_handle, &self.butter_texture));
-        self.text.iter().for_each(|t| t.draw(render_handle));
+        self.text.iter_mut().for_each(|t| t.draw(render_handle));
     }
 
     pub fn restart(&mut self, engine_handle: &mut Engine) {
@@ -145,7 +154,7 @@ impl Level {
         self.enemies_spawned = 0;
         self.spawn_timer = -1.0;
         self.text[0].change_text(&format!("Wave: {}", self.wave_number), engine_handle);
-        self.text[0].pos.x = 800.0 - self.text[0].size.x;
+        self.text[0].pos.x = 800.0 - self.text[0].size.x as f32;
         self.spawn_enemy(0.0);
     }
 

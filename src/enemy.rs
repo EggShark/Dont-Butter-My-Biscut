@@ -1,8 +1,9 @@
 use std::time::Instant;
 
+use bottomless_pit::colour::Colour;
 use bottomless_pit::engine_handle::Engine;
-use bottomless_pit::render::Renderer;
-use bottomless_pit::texture::TextureIndex;
+use bottomless_pit::material::Material;
+use bottomless_pit::render::RenderInformation;
 use bottomless_pit::vectors::Vec2;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -14,7 +15,7 @@ use crate::player::Player;
 
 pub struct Enemy {
     pub pos: Vec2<f32>,
-    size: Vec2<f32>,
+    pub size: Vec2<f32>,
     shot_cooldown: Instant,
     valid: bool,
     speed: f32,
@@ -48,8 +49,8 @@ impl Enemy {
         ]
     }
 
-    pub fn draw(&self, render_handle: &mut Renderer, animations: &[Anmiation]) {
-        animations[self.current_animation].draw(render_handle, self.pos, self.size, false);
+    pub fn draw(&self, render_handle: &mut RenderInformation, animations: &mut [Anmiation]) {
+        animations[self.current_animation].add_instance(render_handle, self.pos, self.size, false);
     }
 
     pub fn update(&mut self, dt: f32, player: &Player, butters: &mut Vec<Butter>, rand: &mut ThreadRng) {
@@ -198,8 +199,9 @@ impl Butter {
         }
     }
 
-    pub fn draw(&self, render_handle: &mut Renderer, butter_texture: &TextureIndex) {
-        render_handle.draw_textured_rectangle(self.pos, self.size.x, self.size.y, butter_texture);
+    pub fn draw(&self, render_handle: &mut RenderInformation, butter_material: &mut Material) {
+        butter_material.add_rectangle(self.pos, self.size, Colour::WHITE, &render_handle);
+        // need to draw it but later.....
     }
 
     pub fn change_target(&mut self, new_target: Vec2<f32>, charge_time: f32) {

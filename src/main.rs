@@ -7,17 +7,19 @@ mod player;
 
 
 use bottomless_pit::input::MouseKey;
-use bottomless_pit::{render::Renderer, texture::TextureIndex};
 use bottomless_pit::engine_handle::Engine;
 use bottomless_pit::colour::Colour;
 use bottomless_pit::engine_handle::EngineBuilder;
+use bottomless_pit::material::{Material, MaterialBuilder};
+use bottomless_pit::render::RenderInformation;
+use bottomless_pit::texture::Texture;
 use bottomless_pit::vectors::Vec2;
 use level::Level;
 use text::Text;
 
 fn main() {
     let mut engine = EngineBuilder::new()
-        .set_clear_colour(Colour::Blue)
+        .set_clear_colour(Colour::BLUE)
         .set_window_title("Butter My Biscuit!")
         .unresizable()
         .with_resolution((800, 800))
@@ -32,39 +34,49 @@ fn main() {
 
 struct Biscut {
     text: Vec<Text>,
-    bg_texture: TextureIndex,
-    logo: TextureIndex,
+    bg_texture: Material,
+    logo: Material,
+    plain_mat: Material,
     level: Level,
     state: MainState,
 }
 
 impl bottomless_pit::Game for Biscut {
-    fn render(&self, render_handle: &mut Renderer) {
-        render_handle.draw_textured_rectangle(Vec2{x: 0.0, y: 0.0}, 800.0, 800.0, &self.bg_texture);
+    fn render<'p, 'o>(&'o mut self, mut render_handle: RenderInformation<'p, 'o>) where 'o: 'p {
+        self.bg_texture.add_rectangle(Vec2{x: 0.0, y: 0.0}, Vec2{x: 800.0, y: 800.0}, Colour::WHITE, &render_handle);
+        self.bg_texture.draw(&mut render_handle);
+
         match self.state {
             MainState::InGame => {
-                self.level.draw(render_handle);
+                self.level.draw(&mut render_handle);
             },
             MainState::EndMenu => {
-                self.level.draw(render_handle);
+                self.level.draw(&mut render_handle);
                 let r1_pos = self.text[3].pos - Vec2{x: 10.0, y: 10.0};
-                let r1_size = self.text[3].size + Vec2{x: 20.0, y: 20.0};
+                let r1_size = Vec2{x: self.text[3].size.x as f32 + 20.0, y: self.text[3].size.y as f32 + 20.0};
                 let r2_pos = self.text[4].pos - Vec2{x: 10.0, y: 10.0};
-                let r2_size = self.text[4].size + Vec2{x: 20.0, y: 20.0};
-                render_handle.draw_rectangle(r1_pos, r1_size.x, r1_size.y, Colour::White);
-                render_handle.draw_rectangle(r2_pos, r2_size.x, r2_size.y, Colour::White);
+                let r2_size = Vec2{x: self.text[4].size.x as f32 + 20.0, y: self.text[4].size.y as f32 + 20.0};
+
+                self.plain_mat.add_rectangle(r1_pos, r1_size, Colour::WHITE, &render_handle);
+                self.plain_mat.add_rectangle(r2_pos, r2_size, Colour::WHITE, &render_handle);
+                self.plain_mat.draw(&mut render_handle);
             },
             MainState::MainMenu => {
                 let r1_pos = self.text[0].pos - Vec2{x: 10.0, y: 10.0};
-                let r1_size = self.text[0].size + Vec2{x: 20.0, y: 20.0};
+                let r1_size = Vec2{x: self.text[0].size.x as f32 + 20.0, y: self.text[0].size.y as f32 + 20.0};
                 let r2_pos = self.text[1].pos - Vec2{x: 10.0, y: 10.0};
-                let r2_size = self.text[1].size + Vec2{x: 20.0, y: 20.0};
-                render_handle.draw_textured_rectangle(Vec2{x: 250.0, y: 250.0}, 300.0, 300.0, &self.logo);
-                render_handle.draw_rectangle(r1_pos, r1_size.x, r1_size.y, Colour::White);
-                render_handle.draw_rectangle(r2_pos, r2_size.x, r2_size.y, Colour::White);
+                let r2_size = Vec2{x: self.text[1].size.x as f32 + 20.0, y: self.text[1].size.y as f32 + 20.0};
+
+                self.logo.add_rectangle(Vec2{x: 250.0, y: 250.0}, Vec2{x: 300.0, y: 300.0}, Colour::WHITE, &render_handle);
+
+                self.plain_mat.add_rectangle(r1_pos, r1_size, Colour::WHITE, &render_handle);
+                self.plain_mat.add_rectangle(r2_pos, r2_size, Colour::WHITE, &render_handle);
+
+                self.logo.draw(&mut render_handle);
+                self.plain_mat.draw(&mut render_handle);
             },
         }
-        self.text.iter().for_each(|t| t.draw(render_handle));
+        self.text.iter_mut().for_each(|t| t.draw(&mut render_handle));
     }
 
     fn update(&mut self, engine_handle: &mut Engine) {
@@ -79,16 +91,19 @@ impl bottomless_pit::Game for Biscut {
 
 impl Biscut {
     fn new(engine_handle: &mut Engine) -> Self {
-        let bg_texture = engine_handle.create_texture("assets/bg.png").unwrap();
-        let logo = engine_handle.create_texture("assets/logo.png").unwrap();
+        let bg_tex = Texture::new(engine_handle, "assets/bg.png");
+        let bg_texture = MaterialBuilder::new().add_texture(bg_tex).build(engine_handle);
+
+        let logo_tex = Texture::new(engine_handle, "assets/logo.png");
+        let logo = MaterialBuilder::new().add_texture(logo_tex).build(engine_handle);
 
         let text = vec![
-            Text::new("Start Game", 50.0, Vec2{x: 20.0, y: 600.0}, Colour::Black, engine_handle),
-            Text::new("Quit", 50.0, Vec2{x: 20.0, y: 680.0}, Colour::Black, engine_handle),
-            Text::new("How to play:", 35.0, Vec2{x: 20.0, y: 20.0}, Colour::Black, engine_handle),
-            Text::new("W A S D to move", 25.0, Vec2{x: 40.0, y: 60.0}, Colour::Black, engine_handle),
-            Text::new("Hold left click to charge", 25.0, Vec2{x: 40.0, y: 90.0}, Colour::Black, engine_handle),
-            Text::new("Release left click to parry incoming butter", 25.0, Vec2{x: 40.0, y: 120.0}, Colour::Black, engine_handle),
+            Text::new("Start Game", 50.0, Vec2{x: 20.0, y: 600.0}, Colour::BLACK, engine_handle),
+            Text::new("Quit", 50.0, Vec2{x: 20.0, y: 680.0}, Colour::BLACK, engine_handle),
+            Text::new("How to play:", 35.0, Vec2{x: 20.0, y: 20.0}, Colour::BLACK, engine_handle),
+            Text::new("W A S D to move", 25.0, Vec2{x: 40.0, y: 60.0}, Colour::BLACK, engine_handle),
+            Text::new("Hold left click to charge", 25.0, Vec2{x: 40.0, y: 90.0}, Colour::BLACK, engine_handle),
+            Text::new("Release left click to parry incoming butter", 100.0, Vec2{x: 40.0, y: 120.0}, Colour::BLACK, engine_handle),
         ];
 
         Self {
@@ -96,6 +111,7 @@ impl Biscut {
             logo,
             text,
             bg_texture,
+            plain_mat: MaterialBuilder::new().build(engine_handle),
             state: MainState::MainMenu,
         }
     }
@@ -112,9 +128,9 @@ impl Biscut {
         let mouse_down = engine_handle.is_mouse_key_pressed(MouseKey::Left);
 
         let r1_pos = self.text[0].pos - Vec2{x: 10.0, y: 10.0};
-        let r1_size = self.text[0].size + Vec2{x: 20.0, y: 20.0};
+        let r1_size = Vec2{x: self.text[0].size.x as f32 + 20.0, y: self.text[0].size.y as f32 + 20.0};
         let r2_pos = self.text[1].pos - Vec2{x: 10.0, y: 10.0};
-        let r2_size = self.text[1].size + Vec2{x: 20.0, y: 20.0};
+        let r2_size = Vec2{x: self.text[1].size.x as f32 + 20.0, y: self.text[1].size.y as f32 + 20.0};
 
         if mouse_down && collision::point_in_rect(r2_size, r2_pos, mouse_pos) {
             engine_handle.close();
@@ -131,10 +147,10 @@ impl Biscut {
         let mouse_pos = engine_handle.get_mouse_position();
         let mouse_down = engine_handle.is_mouse_key_pressed(MouseKey::Left);
 
-        let r1_pos = self.text[4].pos - Vec2{x: 10.0, y: 10.0};
-        let r1_size = self.text[4].size + Vec2{x: 20.0, y: 20.0};
-        let r2_pos = self.text[3].pos - Vec2{x: 10.0, y: 10.0};
-        let r2_size = self.text[3].size + Vec2{x: 20.0, y: 20.0};
+        let r1_pos = self.text[3].pos - Vec2{x: 10.0, y: 10.0};
+        let r1_size = Vec2{x: self.text[3].size.x as f32 + 20.0, y: self.text[3].size.y as f32 + 20.0};
+        let r2_pos = self.text[4].pos - Vec2{x: 10.0, y: 10.0};
+        let r2_size = Vec2{x: self.text[4].size.x as f32 + 20.0, y: self.text[4].size.y as f32 + 20.0};
 
         if mouse_down && collision::point_in_rect(r1_size, r1_pos, mouse_pos) {
             engine_handle.close();
@@ -153,17 +169,17 @@ impl Biscut {
 
     fn to_end(&mut self, engine_handle: &mut Engine) {
         self.state = MainState::EndMenu;
-        let mut text_1 = Text::new("Congrats!", 40.0, Vec2{x: 400.0, y: 230.0}, Colour::Black, engine_handle);
-        let mut text_2 = Text::new(&format!("You made it to wave: {}", self.level.get_wave()), 40.0, Vec2{x: 0.0, y: 270.0}, Colour::Black, engine_handle);
-        let mut text_3 = Text::new(&format!("Succesfully fought {} chefs", self.level.get_kills()), 40.0, Vec2{x: 0.0, y: 310.0}, Colour::Black, engine_handle);
-        text_1.pos.x = 400.0 - text_1.size.x/2.0;
-        text_2.pos.x = 400.0 - text_2.size.x/2.0;
-        text_3.pos.x = 400.0 - text_3.size.x/2.0;
+        let mut text_1 = Text::new("Congrats!", 40.0, Vec2{x: 400.0, y: 230.0}, Colour::BLACK, engine_handle);
+        let mut text_2 = Text::new(&format!("You made it to wave: {}", self.level.get_wave()), 40.0, Vec2{x: 0.0, y: 270.0}, Colour::BLACK, engine_handle);
+        let mut text_3 = Text::new(&format!("Succesfully fought {} chefs", self.level.get_kills()), 40.0, Vec2{x: 0.0, y: 310.0}, Colour::BLACK, engine_handle);
+        text_1.pos.x = 400.0 - text_1.size.x as f32 / 2.0;
+        text_2.pos.x = 400.0 - text_2.size.x as f32 / 2.0;
+        text_3.pos.x = 400.0 - text_3.size.x as f32 / 2.0;
 
-        let mut restart = Text::new("Restart", 40.0, Vec2{x: 0.0, y: 390.0}, Colour::Black, engine_handle);
-        restart.pos.x = 400.0 - restart.size.x/2.0;
-        let mut quit = Text::new("Quit", 40.0, Vec2{x: 0.0, y: 470.0}, Colour::Black, engine_handle);
-        quit.pos.x = 400.0 - quit.size.x/2.0;
+        let mut restart = Text::new("Restart", 40.0, Vec2{x: 0.0, y: 390.0}, Colour::BLACK, engine_handle);
+        restart.pos.x = 400.0 - restart.size.x as f32 / 2.0;
+        let mut quit = Text::new("Quit", 40.0, Vec2{x: 0.0, y: 470.0}, Colour::BLACK, engine_handle);
+        quit.pos.x = 400.0 - quit.size.x as f32 / 2.0;
 
         self.text = vec![text_1, text_2, text_3, restart, quit];
     }

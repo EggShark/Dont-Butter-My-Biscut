@@ -226,8 +226,6 @@ dependencies = [
 [[package]]
 name = "bottomless-pit"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4594f5de7c8d570547baae709f50efbd713b69f9733c9658f33327f43a6e8d7c"
 dependencies = [
  "bytemuck",
  "cfg-if",

@@ -103,7 +103,7 @@ impl Biscut {
             Text::new("How to play:", 35.0, Vec2{x: 20.0, y: 20.0}, Colour::BLACK, engine_handle),
             Text::new("W A S D to move", 25.0, Vec2{x: 40.0, y: 60.0}, Colour::BLACK, engine_handle),
             Text::new("Hold left click to charge", 25.0, Vec2{x: 40.0, y: 90.0}, Colour::BLACK, engine_handle),
-            Text::new("Release left click to parry incoming butter", 100.0, Vec2{x: 40.0, y: 120.0}, Colour::BLACK, engine_handle),
+            Text::new("Release left click to parry incoming butter", 25.0, Vec2{x: 40.0, y: 120.0}, Colour::BLACK, engine_handle),
         ];
 
         Self {

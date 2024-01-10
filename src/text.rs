@@ -13,7 +13,6 @@ pub struct Text {
 
 impl Text {
     pub fn new(text: &str, scale: f32, pos: Vec2<f32>, colour: Colour, engine: &mut Engine) -> Self {
-        println!("text: {}", text);
         let text_material = TextMaterial::new(text, colour, scale, scale * 1.2, engine);
         let size = text_material.get_measurements();
 

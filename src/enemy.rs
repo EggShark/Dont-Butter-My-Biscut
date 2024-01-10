@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use bottomless_pit::colour::Colour;
 use bottomless_pit::engine_handle::Engine;

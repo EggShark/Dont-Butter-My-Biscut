@@ -31,7 +31,6 @@ fn main() {
     engine.run(biscut);
 }
 
-
 struct Biscut {
     text: Vec<Text>,
     bg_texture: Material,

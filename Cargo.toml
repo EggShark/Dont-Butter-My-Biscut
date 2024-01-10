@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bottomless-pit = {path="../bottomless-pit"}
 rand = "0.8.5"
+web-time = "0.2.4"
 
 [target.x86_64-apple-darwin]
 linker = "x86_64-apple-darwin14-clang"
